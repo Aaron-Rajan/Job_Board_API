@@ -1,18 +1,30 @@
 package com.jobboard.backend.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.jobboard.backend.model.Job;
+import com.jobboard.backend.repository.JobRepository;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.jobboard.backend.model.Job;
 
 @RestController
 @RequestMapping("/api/jobs")
+@CrossOrigin(origins = "http://localhost:3000") // Allows frontend to talk to backend
 public class JobController {
+
+    private final JobRepository jobRepository;
+
+    public JobController(JobRepository jobRepository) {
+        this.jobRepository = jobRepository;
+    }
 
     @GetMapping
     public List<Job> getAllJobs() {
-        return List.of(new Job("Software Engineer", "Remote", 100000));
+        return jobRepository.findAll(); // ✅ Load from PostgreSQL
+    }
+
+    @PostMapping
+    public void createJob(@RequestBody Job job) {
+        jobRepository.save(job); // ✅ Save to PostgreSQL
+        System.out.println("Saved job: " + job.getTitle());
     }
 }
