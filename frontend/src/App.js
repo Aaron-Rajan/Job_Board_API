@@ -6,7 +6,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', location: '', salary: '' });
 
-  const [activeJobId, setActiveJobId] = useState(null); // job user clicked "Apply" for
+  const [activeJobId, setActiveJobId] = useState(null);
   const [application, setApplication] = useState({
     name: '',
     email: '',
@@ -46,30 +46,41 @@ function App() {
 
   const handleApplicationChange = e => {
     const { name, value, files } = e.target;
-    if (name === 'resume' || name === 'coverLetter') {
-      setApplication(prev => ({ ...prev, [name]: files[0] }));
+    if (files) {
+      setApplication({ ...application, [name]: files[0] });
     } else {
-      setApplication(prev => ({ ...prev, [name]: value }));
+      setApplication({ ...application, [name]: value });
     }
   };
 
-  const handleApplicationSubmit = (jobId) => {
-    const formData = new FormData();
-    formData.append('resume', application.resume);
-    if (application.coverLetter) {
-      formData.append('coverLetter', application.coverLetter);
-    }
+  const handleApplicationSubmit = async (jobId) => {
+    try {
+      const formData = new FormData();
+      formData.append('resume', application.resume);
+      if (application.coverLetter) {
+        formData.append('coverLetter', application.coverLetter);
+      }
 
-    axios.post('http://localhost:8080/api/upload', formData)
-      .then(() => {
-        alert('Application submitted!');
-        setApplication({ name: '', email: '', resume: null, coverLetter: null });
-        setActiveJobId(null);
-      })
-      .catch(err => {
-        console.error('Upload failed:', err);
-        alert('Failed to upload application.');
-      });
+      const uploadRes = await axios.post('http://localhost:8080/api/upload', formData);
+      const { resumePath, coverLetterPath } = uploadRes.data;
+
+      const applicationPayload = {
+        applicantName: application.name,
+        applicantEmail: application.email,
+        resumePath,
+        coverLetterPath,
+      };
+
+      await axios.post(`http://localhost:8080/api/jobs/${jobId}/apply`, applicationPayload);
+
+      alert('Application submitted and saved to DB!');
+      setApplication({ name: '', email: '', resume: null, coverLetter: null });
+      setActiveJobId(null);
+
+    } catch (err) {
+      console.error('Failed to submit application:', err);
+      alert('Error submitting application.');
+    }
   };
 
   return (
