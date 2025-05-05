@@ -6,12 +6,20 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', location: '', salary: '' });
 
+  const [activeJobId, setActiveJobId] = useState(null); // job user clicked "Apply" for
+  const [application, setApplication] = useState({
+    name: '',
+    email: '',
+    resume: null,
+    coverLetter: null,
+  });
+
   useEffect(() => {
     fetchJobs();
   }, []);
 
   const fetchJobs = () => {
-    axios.get('http://localhost:8080/api/jobs') // update if inside Docker
+    axios.get('http://localhost:8080/api/jobs')
       .then(response => {
         setJobs(response.data);
         setLoading(false);
@@ -22,18 +30,46 @@ function App() {
       });
   };
 
-  const handleChange = e => {
+  const handleJobChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = e => {
+  const handleJobSubmit = e => {
     e.preventDefault();
     axios.post('http://localhost:8080/api/jobs', form)
       .then(() => {
         setForm({ title: '', location: '', salary: '' });
-        fetchJobs(); // refresh list
+        fetchJobs();
       })
       .catch(error => console.error('Error submitting job:', error));
+  };
+
+  const handleApplicationChange = e => {
+    const { name, value, files } = e.target;
+    if (name === 'resume' || name === 'coverLetter') {
+      setApplication(prev => ({ ...prev, [name]: files[0] }));
+    } else {
+      setApplication(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleApplicationSubmit = (jobId) => {
+    const formData = new FormData();
+    formData.append('resume', application.resume);
+    if (application.coverLetter) {
+      formData.append('coverLetter', application.coverLetter);
+    }
+
+    axios.post('http://localhost:8080/api/upload', formData)
+      .then(() => {
+        alert('Application submitted!');
+        setApplication({ name: '', email: '', resume: null, coverLetter: null });
+        setActiveJobId(null);
+      })
+      .catch(err => {
+        console.error('Upload failed:', err);
+        alert('Failed to upload application.');
+      });
   };
 
   return (
@@ -44,36 +80,81 @@ function App() {
         <p>Loading jobs...</p>
       ) : (
         <ul>
-          {jobs.map((job, index) => (
-            <li key={index}>
+          {jobs.map((job) => (
+            <li key={job.id} style={{ marginBottom: '2rem' }}>
               <h3>{job.title}</h3>
               <p><strong>Location:</strong> {job.location}</p>
               <p><strong>Salary:</strong> ${job.salary}</p>
+              <button onClick={() => setActiveJobId(job.id)}>
+                Apply
+              </button>
+
+              {activeJobId === job.id && (
+                <div style={{ marginTop: '1rem', border: '1px solid #ccc', padding: '1rem', maxWidth: '400px' }}>
+                  <h4>Apply for {job.title}</h4>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Your Name"
+                    value={application.name}
+                    onChange={handleApplicationChange}
+                    required
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Your Email"
+                    value={application.email}
+                    onChange={handleApplicationChange}
+                    required
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                  <input
+                    type="file"
+                    name="resume"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleApplicationChange}
+                    required
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                  <input
+                    type="file"
+                    name="coverLetter"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleApplicationChange}
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                  <button onClick={() => handleApplicationSubmit(job.id)}>
+                    Submit Application
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
       )}
 
       <h2>Post a New Job</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
+      <form onSubmit={handleJobSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
         <input
           name="title"
           value={form.title}
-          onChange={handleChange}
+          onChange={handleJobChange}
           placeholder="Job Title"
           required
         />
         <input
           name="location"
           value={form.location}
-          onChange={handleChange}
+          onChange={handleJobChange}
           placeholder="Location"
           required
         />
         <input
           name="salary"
           value={form.salary}
-          onChange={handleChange}
+          onChange={handleJobChange}
           placeholder="Salary"
           type="number"
           required
