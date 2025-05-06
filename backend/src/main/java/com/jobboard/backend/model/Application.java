@@ -1,5 +1,6 @@
 package com.jobboard.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,5 +26,6 @@ public class Application {
 
     @ManyToOne
     @JoinColumn(name = "job_id")
+    @JsonIgnoreProperties("applications") // ✅ Avoid recursion
     private Job job;
 }
