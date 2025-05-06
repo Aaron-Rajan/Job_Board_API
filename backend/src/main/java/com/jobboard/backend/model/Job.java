@@ -1,9 +1,7 @@
 package com.jobboard.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class Job {
@@ -15,6 +13,9 @@ public class Job {
     private String title;
     private String location;
     private int salary;
+
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL)
+    private List<Application> applications;
 
     // Required by JPA
     public Job() {}
@@ -42,6 +43,10 @@ public class Job {
         return salary;
     }
 
+    public List<Application> getApplications() {
+        return applications;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -56,5 +61,9 @@ public class Job {
 
     public void setSalary(int salary) {
         this.salary = salary;
+    }
+
+    public void setApplications(List<Application> applications) {
+        this.applications = applications;
     }
 }
