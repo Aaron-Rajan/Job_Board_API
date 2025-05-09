@@ -121,11 +121,15 @@ function App() {
                     <td>{app.applicantEmail}</td>
                     <td>{app.job?.title || 'N/A'}</td>
                     <td>
-                      <a href={`file://${app.resumePath}`} target="_blank" rel="noreferrer">Resume</a>
+                      <a href={`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(app.resumePath)}&type=resume`} target="_blank" rel="noreferrer">
+                        Resume
+                      </a>
                     </td>
                     <td>
                       {app.coverLetterPath && app.coverLetterPath !== 'Not provided' ? (
-                        <a href={`file://${app.coverLetterPath}`} target="_blank" rel="noreferrer">Cover Letter</a>
+                        <a href={`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(app.coverLetterPath)}&type=coverLetter`} target="_blank" rel="noreferrer">
+                          Cover Letter
+                        </a>
                       ) : 'N/A'}
                     </td>
                   </tr>
