@@ -16,9 +16,10 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:3000")
 public class FileUploadController {
 
-    private static final String UPLOAD_BASE_DIR = System.getProperty("user.dir") + "/uploads/";
-    private static final String RESUME_DIR = UPLOAD_BASE_DIR + "resumes/";
-    private static final String COVER_LETTER_DIR = UPLOAD_BASE_DIR + "coverletters/";
+    // Use relative paths, not absolute
+    private static final String UPLOAD_BASE_DIR = "uploads";  // Relative directory
+    private static final String RESUME_DIR = UPLOAD_BASE_DIR + "/resumes/";
+    private static final String COVER_LETTER_DIR = UPLOAD_BASE_DIR + "/coverletters/";
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> uploadFiles(
@@ -28,19 +29,22 @@ public class FileUploadController {
         Map<String, String> response = new HashMap<>();
 
         try {
+            // Ensure the directories exist
             Files.createDirectories(Paths.get(RESUME_DIR));
             Files.createDirectories(Paths.get(COVER_LETTER_DIR));
 
+            // Upload Resume
             String resumeName = System.currentTimeMillis() + "_" + resume.getOriginalFilename();
             Path resumePath = Paths.get(RESUME_DIR + resumeName);
             Files.copy(resume.getInputStream(), resumePath, StandardCopyOption.REPLACE_EXISTING);
-            response.put("resumePath", resumeName); // Store only filename
+            response.put("resumePath", resumeName); // Store only the filename
 
+            // Upload Cover Letter (optional)
             if (coverLetter != null && !coverLetter.isEmpty()) {
                 String clName = System.currentTimeMillis() + "_" + coverLetter.getOriginalFilename();
                 Path clPath = Paths.get(COVER_LETTER_DIR + clName);
                 Files.copy(coverLetter.getInputStream(), clPath, StandardCopyOption.REPLACE_EXISTING);
-                response.put("coverLetterPath", clName); // Store only filename
+                response.put("coverLetterPath", clName); // Store only the filename
             } else {
                 response.put("coverLetterPath", "Not provided");
             }
@@ -57,8 +61,9 @@ public class FileUploadController {
             @RequestParam String filename,
             @RequestParam String type
     ) {
+        // Build the path dynamically based on file type
         String baseDir = type.equalsIgnoreCase("resume") ? RESUME_DIR : COVER_LETTER_DIR;
-        Path filePath = Paths.get(baseDir + filename);
+        Path filePath = Paths.get(System.getProperty("user.dir"), baseDir, filename).normalize();
 
         try {
             Resource resource = new UrlResource(filePath.toUri());
