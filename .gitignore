@@ -4,3 +4,6 @@
 # Node.js
 /frontend/node_modules/
 /frontend/build/
+
+#Environment variables
+.env

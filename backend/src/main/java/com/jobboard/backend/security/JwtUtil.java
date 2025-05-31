@@ -11,10 +11,12 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "8f5c2e8d3a91c90b8bd2f4763e2891a347abcee69d450bce3d1d3a12f9ae78a3"; // Must be 256-bit+ for HS256
-
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        String secret = System.getenv("JWT_SECRET");
+        if (secret == null || secret.isEmpty()) {
+            throw new IllegalStateException("JWT_SECRET environment variable is not set");
+        }
+        return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     public String generateToken(User user) {
