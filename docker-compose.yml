@@ -14,7 +14,7 @@ services:
   backend:
     build: ./backend
     volumes:
-      - ./uploads:/app/uploads  # <-- mount local "uploads" to container's "/app/uploads"
+      - ./uploads:/app/uploads
     ports:
       - "8080:8080"
     depends_on:
@@ -23,6 +23,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jobdb
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
+      JWT_SECRET: 8f5c2e8d3a91c90b8bd2f4763e2891a347abcee69d450bce3d1d3a12f9ae78a3
 
   frontend:
     build:

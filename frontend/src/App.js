@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import Login from './Login';
+import Register from './Register';
 
 function App() {
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [role, setRole] = useState(localStorage.getItem("role"));
+  const [showRegister, setShowRegister] = useState(false);
+
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', location: '', salary: '' });
@@ -22,22 +28,28 @@ function App() {
     else fetchApplications();
   }, [showAdmin]);
 
-  const fetchJobs = () => {
-    axios.get('http://localhost:8080/api/jobs')
-      .then(response => {
-        setJobs(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error fetching jobs:', error);
-        setLoading(false);
+  const fetchJobs = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/jobs', {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      setJobs(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setLoading(false);
+    }
   };
 
-  const fetchApplications = () => {
-    axios.get('http://localhost:8080/api/admin/applications')
-      .then(response => setApplications(response.data))
-      .catch(error => console.error('Error fetching applications:', error));
+  const fetchApplications = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/admin/applications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setApplications(response.data);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
   };
 
   const handleJobChange = e => {
@@ -46,7 +58,9 @@ function App() {
 
   const handleJobSubmit = e => {
     e.preventDefault();
-    axios.post('http://localhost:8080/api/jobs', form)
+    axios.post('http://localhost:8080/api/jobs', form, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(() => {
         setForm({ title: '', location: '', salary: '' });
         fetchJobs();
@@ -71,7 +85,10 @@ function App() {
         formData.append('coverLetter', application.coverLetter);
       }
 
-      const uploadRes = await axios.post('http://localhost:8080/api/upload', formData);
+      const uploadRes = await axios.post('http://localhost:8080/api/upload', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
       const { resumePath, coverLetterPath } = uploadRes.data;
 
       const applicationPayload = {
@@ -81,7 +98,9 @@ function App() {
         coverLetterPath,
       };
 
-      await axios.post(`http://localhost:8080/api/jobs/${jobId}/apply`, applicationPayload);
+      await axios.post(`http://localhost:8080/api/jobs/${jobId}/apply`, applicationPayload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       alert('Application submitted and saved to DB!');
       setApplication({ name: '', email: '', resume: null, coverLetter: null });
@@ -92,13 +111,56 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setToken(null);
+    setRole(null);
+  };
+
+  const handleDownload = async (filename, type) => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(filename)}&type=${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename.split('/').pop());
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file.');
+    }
+  };
+
+  if (!token) {
+    return showRegister
+      ? <Register onRegistered={() => setShowRegister(false)} />
+      : (
+        <>
+          <Login setToken={setToken} setRole={setRole} />
+          <p>Don't have an account? <button onClick={() => setShowRegister(true)}>Register here</button></p>
+        </>
+      );
+  }
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial' }}>
-      <button onClick={() => setShowAdmin(!showAdmin)} style={{ marginBottom: '1rem' }}>
-        {showAdmin ? 'Back to Job Board' : 'View Admin Dashboard'}
-      </button>
+      <div style={{ marginBottom: '1rem' }}>
+        <span>Logged in as: {role}</span>
+        <button onClick={handleLogout} style={{ marginLeft: '1rem' }}>Logout</button>
+        {role === 'EMPLOYER' && (
+          <button onClick={() => setShowAdmin(!showAdmin)} style={{ marginLeft: '1rem' }}>
+            {showAdmin ? 'Back to Job Board' : 'View Admin Dashboard'}
+          </button>
+        )}
+      </div>
 
-      {showAdmin ? (
+      {role === 'EMPLOYER' && showAdmin ? (
         <>
           <h2>All Job Applications</h2>
           {applications.length === 0 ? (
@@ -121,15 +183,15 @@ function App() {
                     <td>{app.applicantEmail}</td>
                     <td>{app.job?.title || 'N/A'}</td>
                     <td>
-                      <a href={`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(app.resumePath)}&type=resume`} target="_blank" rel="noreferrer">
+                      <button onClick={() => handleDownload(app.resumePath, 'resume')}>
                         Resume
-                      </a>
+                      </button>
                     </td>
                     <td>
                       {app.coverLetterPath && app.coverLetterPath !== 'Not provided' ? (
-                        <a href={`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(app.coverLetterPath)}&type=coverLetter`} target="_blank" rel="noreferrer">
+                        <button onClick={() => handleDownload(app.coverLetterPath, 'coverLetter')}>
                           Cover Letter
-                        </a>
+                        </button>
                       ) : 'N/A'}
                     </td>
                   </tr>
@@ -194,32 +256,36 @@ function App() {
             </ul>
           )}
 
-          <h2>Post a New Job</h2>
-          <form onSubmit={handleJobSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
-            <input
-              name="title"
-              value={form.title}
-              onChange={handleJobChange}
-              placeholder="Job Title"
-              required
-            />
-            <input
-              name="location"
-              value={form.location}
-              onChange={handleJobChange}
-              placeholder="Location"
-              required
-            />
-            <input
-              name="salary"
-              value={form.salary}
-              onChange={handleJobChange}
-              placeholder="Salary"
-              type="number"
-              required
-            />
-            <button type="submit" style={{ marginTop: '1rem' }}>Post Job</button>
-          </form>
+          {role === 'EMPLOYER' && (
+            <>
+              <h2>Post a New Job</h2>
+              <form onSubmit={handleJobSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleJobChange}
+                  placeholder="Job Title"
+                  required
+                />
+                <input
+                  name="location"
+                  value={form.location}
+                  onChange={handleJobChange}
+                  placeholder="Location"
+                  required
+                />
+                <input
+                  name="salary"
+                  value={form.salary}
+                  onChange={handleJobChange}
+                  placeholder="Salary"
+                  type="number"
+                  required
+                />
+                <button type="submit" style={{ marginTop: '1rem' }}>Post Job</button>
+              </form>
+            </>
+          )}
         </>
       )}
     </div>
