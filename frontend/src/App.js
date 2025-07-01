@@ -7,15 +7,12 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [role, setRole] = useState(localStorage.getItem("role"));
   const [showRegister, setShowRegister] = useState(false);
-
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', location: '', salary: '' });
-
   const [activeJobId, setActiveJobId] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [applications, setApplications] = useState([]);
-
   const [application, setApplication] = useState({
     name: '',
     email: '',
@@ -70,11 +67,7 @@ function App() {
 
   const handleApplicationChange = e => {
     const { name, value, files } = e.target;
-    if (files) {
-      setApplication({ ...application, [name]: files[0] });
-    } else {
-      setApplication({ ...application, [name]: value });
-    }
+    setApplication({ ...application, [name]: files ? files[0] : value });
   };
 
   const handleApplicationSubmit = async (jobId) => {
@@ -102,7 +95,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert('Application submitted and saved to DB!');
+      alert('Application submitted!');
       setApplication({ name: '', email: '', resume: null, coverLetter: null });
       setActiveJobId(null);
     } catch (err) {
@@ -141,88 +134,114 @@ function App() {
     return showRegister
       ? <Register onRegistered={() => setShowRegister(false)} />
       : (
-        <>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
           <Login setToken={setToken} setRole={setRole} />
-          <p>Don't have an account? <button onClick={() => setShowRegister(true)}>Register here</button></p>
-        </>
+          <p className="mt-4 text-gray-600">
+            Don't have an account?{' '}
+            <button onClick={() => setShowRegister(true)} className="text-blue-600 hover:underline">
+              Register here
+            </button>
+          </p>
+        </div>
       );
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Arial' }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <span>Logged in as: {role}</span>
-        <button onClick={handleLogout} style={{ marginLeft: '1rem' }}>Logout</button>
-        {role === 'EMPLOYER' && (
-          <button onClick={() => setShowAdmin(!showAdmin)} style={{ marginLeft: '1rem' }}>
-            {showAdmin ? 'Back to Job Board' : 'View Admin Dashboard'}
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <span className="text-gray-700">Logged in as: <strong>{role}</strong></span>
+        <div>
+          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md mr-2 hover:bg-red-600">
+            Logout
           </button>
-        )}
+          {role === 'EMPLOYER' && (
+            <button
+              onClick={() => setShowAdmin(!showAdmin)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              {showAdmin ? 'Back to Job Board' : 'View Admin Dashboard'}
+            </button>
+          )}
+        </div>
       </div>
 
       {role === 'EMPLOYER' && showAdmin ? (
-        <>
-          <h2>All Job Applications</h2>
+        <div>
+          <h2 className="text-xl font-bold mb-4">Submitted Applications</h2>
           {applications.length === 0 ? (
             <p>No applications submitted yet.</p>
           ) : (
-            <table border="1" cellPadding="10">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Job Title</th>
-                  <th>Resume</th>
-                  <th>Cover Letter</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map(app => (
-                  <tr key={app.id}>
-                    <td>{app.applicantName}</td>
-                    <td>{app.applicantEmail}</td>
-                    <td>{app.job?.title || 'N/A'}</td>
-                    <td>
-                      <button onClick={() => handleDownload(app.resumePath, 'resume')}>
-                        Resume
-                      </button>
-                    </td>
-                    <td>
-                      {app.coverLetterPath && app.coverLetterPath !== 'Not provided' ? (
-                        <button onClick={() => handleDownload(app.coverLetterPath, 'coverLetter')}>
-                          Cover Letter
-                        </button>
-                      ) : 'N/A'}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white shadow-md rounded-lg">
+                <thead>
+                  <tr className="bg-gray-200 text-left text-sm font-semibold">
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Job Title</th>
+                    <th className="p-3">Resume</th>
+                    <th className="p-3">Cover Letter</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {applications.map(app => (
+                    <tr key={app.id} className="border-b text-sm">
+                      <td className="p-3">{app.applicantName}</td>
+                      <td className="p-3">{app.applicantEmail}</td>
+                      <td className="p-3">{app.job?.title || 'N/A'}</td>
+                      <td className="p-3">
+                        <button
+                          className="text-blue-600 hover:underline"
+                          onClick={() => handleDownload(app.resumePath, 'resume')}
+                        >
+                          Resume
+                        </button>
+                      </td>
+                      <td className="p-3">
+                        {app.coverLetterPath && app.coverLetterPath !== 'Not provided' ? (
+                          <button
+                            className="text-blue-600 hover:underline"
+                            onClick={() => handleDownload(app.coverLetterPath, 'coverLetter')}
+                          >
+                            Cover Letter
+                          </button>
+                        ) : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </>
+        </div>
       ) : (
         <>
-          <h1>Available Jobs</h1>
+          <h1 className="text-2xl font-bold mb-4">Available Jobs</h1>
           {loading ? (
             <p>Loading jobs...</p>
           ) : (
-            <ul>
-              {jobs.map((job) => (
-                <li key={job.id} style={{ marginBottom: '2rem' }}>
-                  <h3>{job.title}</h3>
-                  <p><strong>Location:</strong> {job.location}</p>
-                  <p><strong>Salary:</strong> ${job.salary}</p>
-                  <button onClick={() => setActiveJobId(job.id)}>Apply</button>
+            <div className="grid gap-4">
+              {jobs.map(job => (
+                <div key={job.id} className="bg-white p-4 shadow-md rounded-md">
+                  <h3 className="text-lg font-semibold">{job.title}</h3>
+                  <p className="text-gray-600">Location: {job.location}</p>
+                  <p className="text-gray-600 mb-2">Salary: ${job.salary}</p>
+                  <button
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                    onClick={() => setActiveJobId(job.id)}
+                  >
+                    Apply
+                  </button>
 
                   {activeJobId === job.id && (
-                    <div style={{ marginTop: '1rem', border: '1px solid #ccc', padding: '1rem', maxWidth: '400px' }}>
-                      <h4>Apply for {job.title}</h4>
+                    <div className="mt-4 border-t pt-4">
+                      <h4 className="font-semibold mb-2">Apply for {job.title}</h4>
                       <input
                         type="text"
                         name="name"
                         placeholder="Your Name"
                         value={application.name}
                         onChange={handleApplicationChange}
+                        className="block w-full mb-2 px-3 py-2 border rounded-md"
                         required
                       />
                       <input
@@ -231,6 +250,7 @@ function App() {
                         placeholder="Your Email"
                         value={application.email}
                         onChange={handleApplicationChange}
+                        className="block w-full mb-2 px-3 py-2 border rounded-md"
                         required
                       />
                       <input
@@ -238,6 +258,7 @@ function App() {
                         name="resume"
                         accept=".pdf,.doc,.docx"
                         onChange={handleApplicationChange}
+                        className="block w-full mb-2"
                         required
                       />
                       <input
@@ -245,26 +266,34 @@ function App() {
                         name="coverLetter"
                         accept=".pdf,.doc,.docx"
                         onChange={handleApplicationChange}
+                        className="block w-full mb-2"
                       />
-                      <button onClick={() => handleApplicationSubmit(job.id)} style={{ marginTop: '0.5rem' }}>
+                      <button
+                        onClick={() => handleApplicationSubmit(job.id)}
+                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                      >
                         Submit Application
                       </button>
                     </div>
                   )}
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
 
           {role === 'EMPLOYER' && (
-            <>
-              <h2>Post a New Job</h2>
-              <form onSubmit={handleJobSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
+            <div className="mt-10">
+              <h2 className="text-xl font-bold mb-4">Post a New Job</h2>
+              <form
+                onSubmit={handleJobSubmit}
+                className="bg-white shadow-md rounded-md p-6 max-w-md"
+              >
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleJobChange}
                   placeholder="Job Title"
+                  className="w-full mb-3 px-3 py-2 border rounded-md"
                   required
                 />
                 <input
@@ -272,19 +301,26 @@ function App() {
                   value={form.location}
                   onChange={handleJobChange}
                   placeholder="Location"
+                  className="w-full mb-3 px-3 py-2 border rounded-md"
                   required
                 />
                 <input
                   name="salary"
+                  type="number"
                   value={form.salary}
                   onChange={handleJobChange}
                   placeholder="Salary"
-                  type="number"
+                  className="w-full mb-4 px-3 py-2 border rounded-md"
                   required
                 />
-                <button type="submit" style={{ marginTop: '1rem' }}>Post Job</button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  Post Job
+                </button>
               </form>
-            </>
+            </div>
           )}
         </>
       )}

@@ -21,15 +21,36 @@ function Register({ onRegistered }) {
   };
 
   return (
-    <div>
-      <h2>Register</h2>
-      <input type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
-      <select value={role} onChange={e => setRole(e.target.value)}>
-        <option value="APPLICANT">Applicant</option>
-        <option value="EMPLOYER">Employer</option>
-      </select>
-      <button onClick={handleRegister}>Register</button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-semibold mb-6 text-center text-gray-700">Register</h2>
+        <input
+          type="email"
+          placeholder="Email"
+          onChange={e => setEmail(e.target.value)}
+          className="w-full px-4 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          onChange={e => setPassword(e.target.value)}
+          className="w-full px-4 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value)}
+          className="w-full px-4 py-2 mb-6 border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="APPLICANT">Applicant</option>
+          <option value="EMPLOYER">Employer</option>
+        </select>
+        <button
+          onClick={handleRegister}
+          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200"
+        >
+          Register
+        </button>
+      </div>
     </div>
   );
 }
