@@ -4,8 +4,10 @@ import Login from './Login';
 import Register from './Register';
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [role, setRole] = useState(localStorage.getItem("role"));
+  const [token, setToken] = useState(null);
+  const [role, setRole] = useState(null);
+  const [validating, setValidating] = useState(true);
+
   const [showRegister, setShowRegister] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,9 +23,35 @@ function App() {
   });
 
   useEffect(() => {
-    if (!showAdmin) fetchJobs();
-    else fetchApplications();
-  }, [showAdmin]);
+    const storedToken = localStorage.getItem("token");
+    const storedRole = localStorage.getItem("role");
+
+    if (storedToken && storedRole) {
+      setToken(storedToken);
+      setRole(storedRole);
+    }
+
+    setValidating(false);
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchData = async () => {
+      try {
+        if (!showAdmin) {
+          await fetchJobs();
+        } else {
+          await fetchApplications();
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        handleLogout();
+      }
+    };
+
+    fetchData();
+  }, [token, showAdmin]);
 
   const fetchJobs = async () => {
     try {
@@ -49,20 +77,31 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setToken(null);
+    setRole(null);
+    setJobs([]);
+    setApplications([]);
+    setShowAdmin(false);
+  };
+
   const handleJobChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleJobSubmit = e => {
+  const handleJobSubmit = async e => {
     e.preventDefault();
-    axios.post('http://localhost:8080/api/jobs', form, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(() => {
-        setForm({ title: '', location: '', salary: '' });
-        fetchJobs();
-      })
-      .catch(error => console.error('Error submitting job:', error));
+    try {
+      await axios.post('http://localhost:8080/api/jobs', form, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setForm({ title: '', location: '', salary: '' });
+      fetchJobs();
+    } catch (error) {
+      console.error('Error submitting job:', error);
+    }
   };
 
   const handleApplicationChange = e => {
@@ -104,13 +143,6 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    setToken(null);
-    setRole(null);
-  };
-
   const handleDownload = async (filename, type) => {
     try {
       const response = await axios.get(`http://localhost:8080/api/upload/download?filename=${encodeURIComponent(filename)}&type=${type}`, {
@@ -129,6 +161,8 @@ function App() {
       alert('Failed to download file.');
     }
   };
+
+  if (validating) return <p className="p-4 text-gray-600">Loading...</p>;
 
   if (!token) {
     return showRegister
@@ -235,6 +269,7 @@ function App() {
                   {activeJobId === job.id && (
                     <div className="mt-4 border-t pt-4">
                       <h4 className="font-semibold mb-2">Apply for {job.title}</h4>
+
                       <input
                         type="text"
                         name="name"
@@ -244,6 +279,7 @@ function App() {
                         className="block w-full mb-2 px-3 py-2 border rounded-md"
                         required
                       />
+
                       <input
                         type="email"
                         name="email"
@@ -253,21 +289,34 @@ function App() {
                         className="block w-full mb-2 px-3 py-2 border rounded-md"
                         required
                       />
-                      <input
-                        type="file"
-                        name="resume"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleApplicationChange}
-                        className="block w-full mb-2"
-                        required
-                      />
-                      <input
-                        type="file"
-                        name="coverLetter"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleApplicationChange}
-                        className="block w-full mb-2"
-                      />
+
+                      <div className="mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Resume</label>
+                        <input
+                          type="file"
+                          name="resume"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleApplicationChange}
+                          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0 file:text-sm file:font-semibold
+                                    file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          required
+                        />
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Cover Letter</label>
+                        <input
+                          type="file"
+                          name="coverLetter"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleApplicationChange}
+                          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0 file:text-sm file:font-semibold
+                                    file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                      </div>
+
                       <button
                         onClick={() => handleApplicationSubmit(job.id)}
                         className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"

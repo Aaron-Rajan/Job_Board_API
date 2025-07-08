@@ -8,12 +8,14 @@ function Login({ setToken, setRole }) {
   const handleLogin = async () => {
     try {
       const res = await axios.post('http://localhost:8080/api/auth/login', { email, password });
-      setToken(res.data.token);
-      setRole(res.data.role);
+
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
+
+      setToken(res.data.token);
+      setRole(res.data.role);
     } catch (err) {
-      alert("Login failed");
+      alert("Login failed: " + (err.response?.data || err.message));
     }
   };
 
